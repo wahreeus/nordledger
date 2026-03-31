@@ -9,30 +9,30 @@ data "aws_availability_zones" "available" {
 locals {
   vpc = {
     name        = "nordledger"
-    cidr_block  = "10.1.0.0/20"
+    cidr_block  = "10.0.0.0/20"
     environment = "shared"
   }
   subnets = {
     public_a = {
-      cidr_block  = "10.1.1.0/24"
+      cidr_block  = "10.0.1.0/24"
       role        = "public"
       route_table = "public"
       az_index    = 0
     }
     private_a = {
-      cidr_block  = "10.1.2.0/24"
+      cidr_block  = "10.0.2.0/24"
       role        = "private"
       route_table = "private"
       az_index    = 0
     }
     public_b = {
-      cidr_block  = "10.1.3.0/24"
+      cidr_block  = "10.0.3.0/24"
       role        = "public"
       route_table = "public"
       az_index    = 1
     }
     private_b = {
-      cidr_block  = "10.1.4.0/24"
+      cidr_block  = "10.0.4.0/24"
       role        = "private"
       route_table = "private"
       az_index    = 1
