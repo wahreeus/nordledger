@@ -17,7 +17,9 @@ The VPC also includes:
 
 This design places internet-facing resources in the public subnets, while internal workloads run in the private subnets. Private subnets do not receive direct inbound internet access, but they can initiate outbound internet connectivity through the NAT gateways. I visual representation of the network setup is presented below.
 
-![Network diagram](./diagrams/nordledger-network.svg)
+<p align="center">
+  <img src="diagrams/network.svg" alt="Network diagram">
+</p>
 
 ---
 
