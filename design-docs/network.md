@@ -6,14 +6,15 @@ The network is deployed in a **single VPC** spanning **two Availability Zones** 
 
 Each AZ contains:
 
-- **One public subnet**
-- **One private subnet**
-- **One NAT gateway located in the public subnet**
+- **A public subnet**
+- **A private subnet**
+- **A NAT gateway located in the public subnet**
+- **A private route table in the private subnet**
 
 The VPC also includes:
 
-- **One shared public route table**
-- **One private route table for each private subnet**
+- **An internet gateway**
+- **A shared public route table**
 
 This design places internet-facing resources in the public subnets, while internal workloads run in the private subnets. Private subnets do not receive direct inbound internet access, but they can initiate outbound internet connectivity through the NAT gateways. I visual representation of the network setup is presented below.
 
