@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NordLedger Dashboard</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --soft: #f1f5f9;
+      --soft-2: #e2e8f0;
+      --button: #0f172a;
+      --button-hover: #1e293b;
+      --success-bg: #ecfdf5;
+      --success-border: #bbf7d0;
+      --success-text: #047857;
+      --danger-bg: #fef2f2;
+      --danger-text: #b91c1c;
+      --radius-xl: 28px;
+      --radius-lg: 18px;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      --font: Inter, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 24px 48px;
+    }
+
+    .topbar,
+    .hero,
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar {
+      margin-bottom: 20px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      margin: 3px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .hero-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      max-width: 700px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 18px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .button-secondary {
+      background: #ffffff;
+      color: var(--text);
+      border-color: #cbd5e1;
+    }
+
+    .button-secondary:hover {
+      background: var(--bg);
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) 320px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .card {
+      padding: 24px;
+    }
+
+    .summary-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .eyebrow {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .big-number {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--soft);
+      color: #334155;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .invoice-card {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .scope-card {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      height: 100%;
+      align-self: stretch;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .section-subtitle {
+      margin: 8px 0 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .table-wrapper {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--bg);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-pending {
+      background: var(--soft);
+      color: #334155;
+    }
+
+    .badge-overdue {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .pdf-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .table-link {
+      color: var(--text);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .table-link:hover {
+      text-decoration: underline;
+    }
+
+    .side-text {
+      font-size: 14px;
+      line-height: 1.75;
+      color: #475569;
+      margin: 0;
+    }
+
+    .side-text + .side-text {
+      margin-top: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-grid,
+      .invoice-card,
+      .scope-card {
+        grid-column: auto;
+        grid-row: auto;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 20px 16px 36px;
+      }
+
+      .topbar,
+      .hero,
+      .card {
+        padding: 20px;
+        border-radius: 24px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      th, td {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">NL</div>
+        <div>
+          <p class="brand-title">NordLedger</p>
+          <p class="brand-subtitle">Billing and revenue operations</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Primary">
+        <a href="register-customer.html" class="button button-secondary">Register customer</a>
+        <a href="register-invoice.html" class="button button-secondary">Register invoice</a>
+        <a href="index.html" class="button button-secondary">Sign out</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="hero-row">
+        <div>
+          <h1>Welcome to NordLedger</h1>
+          <p>
+            A simple internal view for registering customers, creating invoices, downloading PDF invoices,
+            and checking invoice status.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="summary-grid">
+        <article class="card summary-card">
+          <div>
+            <div class="eyebrow">Registered customers</div>
+            <div class="big-number">48</div>
+          </div>
+          <div class="icon-box">👤</div>
+        </article>
+
+        <article class="card summary-card">
+          <div>
+            <div class="eyebrow">Registered invoices</div>
+            <div class="big-number">126</div>
+          </div>
+          <div class="icon-box">📄</div>
+        </article>
+      </div>
+
+      <article class="card invoice-card">
+        <h2 class="section-title">Invoice status</h2>
+        <p class="section-subtitle">
+          Portfolio demo invoices with simplified status tracking.
+        </p>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>PDF</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>INV-2026-4812</strong></td>
+                <td>Acme Analytics GmbH</td>
+                <td>€2,490</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td>
+                  <div class="pdf-actions">
+                    <a href="invoices/INV-2026-4812.pdf" download class="table-link">Download</a>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>INV-2026-4813</strong></td>
+                <td>NorthStar Retail AB</td>
+                <td>€1,280</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td>
+                  <div class="pdf-actions">
+                    <a href="invoices/INV-2026-4813.pdf" download class="table-link">Download</a>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>INV-2026-4814</strong></td>
+                <td>BluePeak Health Ltd</td>
+                <td>€3,920</td>
+                <td><span class="badge badge-overdue">Overdue</span></td>
+                <td>
+                  <div class="pdf-actions">
+                    <a href="invoices/INV-2026-4814.pdf" download class="table-link">Download</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <aside class="card scope-card">
+        <h2 class="section-title">Portfolio scope</h2>
+        <p class="side-text">
+          This demo focuses on three core actions: register a new customer, register a new invoice, and view invoice PDFs and status.
+        </p>
+        <p class="side-text">
+          Invoice status is intentionally limited to <strong>Pending</strong> and <strong>Overdue</strong>. Payment tracking is not implemented in this version.
+        </p>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

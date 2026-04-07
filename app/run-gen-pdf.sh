@@ -2,7 +2,7 @@
 
 CUSTOMERS_FILE="data_customers.json"
 INVOICES_FILE="data_invoices.json"
-PYTHON_SCRIPT="generate_invoice.py"
+PYTHON_SCRIPT="generate_pdf.py"
 OUTPUT_DIR="invoices"
 
 if [ ! -f "$CUSTOMERS_FILE" ]; then

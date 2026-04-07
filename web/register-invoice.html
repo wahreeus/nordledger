@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NordLedger - Register Invoice</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --soft: #f1f5f9;
+      --button: #0f172a;
+      --button-hover: #1e293b;
+      --radius-xl: 28px;
+      --radius-lg: 18px;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      --font: Inter, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 24px 48px;
+    }
+
+    .topbar,
+    .hero,
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar {
+      margin-bottom: 20px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      margin: 3px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .hero-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      max-width: 720px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .actions,
+    .button-row,
+    .entries-header {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .button,
+    .submit-btn,
+    .remove-entry-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 18px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: 0.2s ease;
+      border: 1px solid transparent;
+      font-family: inherit;
+      background: transparent;
+    }
+
+    .button-primary,
+    .submit-btn {
+      background: var(--button);
+      color: #ffffff;
+      border-color: var(--button);
+    }
+
+    .button-primary:hover,
+    .submit-btn:hover {
+      background: var(--button-hover);
+      border-color: var(--button-hover);
+    }
+
+    .button-secondary,
+    .remove-entry-btn {
+      background: #ffffff;
+      color: var(--text);
+      border-color: #cbd5e1;
+    }
+
+    .button-secondary:hover,
+    .remove-entry-btn:hover {
+      background: var(--bg);
+    }
+
+    .card {
+      padding: 24px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .section-copy {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .form {
+      margin-top: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .two-col,
+    .three-col {
+      display: grid;
+      gap: 18px;
+    }
+
+    .two-col {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .three-col {
+      grid-template-columns: 1.8fr 0.7fr 0.9fr;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .input,
+    .select {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .input:focus,
+    .select:focus {
+      border-color: #94a3b8;
+      box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
+    }
+
+    .entries-wrap {
+      display: grid;
+      gap: 14px;
+    }
+
+    .entry-row {
+      padding: 18px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      border-radius: 22px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .entry-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .entry-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .helper {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .notice {
+      margin-top: 18px;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .notice.success {
+      color: #14805e;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.95em;
+    }
+
+    @media (max-width: 960px) {
+      h1 { font-size: 32px; }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 20px 16px 36px;
+      }
+
+      .topbar,
+      .hero,
+      .card {
+        padding: 20px;
+        border-radius: 24px;
+      }
+
+      .two-col,
+      .three-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">NL</div>
+        <div>
+          <p class="brand-title">NordLedger</p>
+          <p class="brand-subtitle">Billing and revenue operations</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Primary">
+        <a href="dashboard.html" class="button button-secondary">Back to dashboard</a>
+        <a href="index.html" class="button button-secondary">Sign out</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="hero-row">
+        <div>
+          <h1>Register a new invoice</h1>
+          <p>
+            Create a new invoice for an existing customer. This page now uses the same
+            light internal style as the dashboard and customer registration flow.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Invoice details</h2>
+      <p class="section-copy">
+        Select a customer, add invoice dates, and enter one or more invoice rows.
+      </p>
+
+      <form class="form" id="invoiceForm">
+        <div class="field">
+          <label class="label" for="customer_id">Customer ID</label>
+          <select class="select" id="customer_id" name="customer_id" required>
+            <option value="">Select customer</option>
+          </select>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label class="label" for="issue_date">Issue date</label>
+            <input class="input" id="issue_date" name="issue_date" type="date" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="due_date">Due date</label>
+            <input class="input" id="due_date" name="due_date" type="date" required />
+          </div>
+        </div>
+
+        <div class="entries-header">
+          <div>
+            <label class="label">Invoice entries</label>
+            <div class="helper">
+              Add one or more line items with service name, quantity, and unit price.
+            </div>
+          </div>
+
+          <button class="button button-secondary" type="button" id="addEntryBtn">Add entry</button>
+        </div>
+
+        <div class="entries-wrap" id="entriesWrap"></div>
+
+        <div class="button-row">
+          <button class="submit-btn" type="submit">Register invoice</button>
+          <button class="button button-secondary" type="button" id="clearFormBtn">Clear</button>
+        </div>
+      </form>
+
+      <div class="notice" id="notice"></div>
+    </section>
+  </main>
+
+  <script>
+    const CUSTOMER_STORAGE_KEY = 'nordledger_customers';
+    const INVOICE_STORAGE_KEY = 'nordledger_invoices';
+
+    const invoiceForm = document.getElementById('invoiceForm');
+    const customerSelect = document.getElementById('customer_id');
+    const entriesWrap = document.getElementById('entriesWrap');
+    const addEntryBtn = document.getElementById('addEntryBtn');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    const notice = document.getElementById('notice');
+    const issueDateInput = document.getElementById('issue_date');
+    const dueDateInput = document.getElementById('due_date');
+
+    function getStoredCustomers() {
+      try {
+        const raw = localStorage.getItem(CUSTOMER_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function getStoredInvoices() {
+      try {
+        const raw = localStorage.getItem(INVOICE_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveStoredInvoices(invoices) {
+      localStorage.setItem(INVOICE_STORAGE_KEY, JSON.stringify(invoices, null, 2));
+    }
+
+    function populateCustomers() {
+      const customers = getStoredCustomers();
+
+      customerSelect.innerHTML = '<option value="">Select customer</option>';
+
+      customers.forEach(function (customer) {
+        const option = document.createElement('option');
+        option.value = customer.customer_id;
+        option.textContent = customer.customer_id + ' - ' + customer.company_name;
+        customerSelect.appendChild(option);
+      });
+    }
+
+    function generateUniqueInvoiceId(existingIds) {
+      let attempts = 0;
+
+      while (attempts < 10000) {
+        let id = '';
+        for (let i = 0; i < 12; i += 1) {
+          id += Math.floor(Math.random() * 10);
+        }
+
+        if (!existingIds.has(id)) {
+          return id;
+        }
+
+        attempts += 1;
+      }
+
+      throw new Error('Unable to generate a unique invoice ID.');
+    }
+
+    function createEntryRow(values) {
+      const row = document.createElement('div');
+      row.className = 'entry-row';
+      row.innerHTML = `
+        <div class="entry-top">
+          <p class="entry-title">Invoice entry</p>
+          <button class="remove-entry-btn" type="button">Remove</button>
+        </div>
+
+        <div class="field">
+          <label class="label">Service</label>
+          <input class="input entry-service" type="text" placeholder="Retail Billing Platform Subscription" value="${values && values.service ? escapeHtml(values.service) : ''}" required />
+        </div>
+
+        <div class="three-col">
+          <div class="field">
+            <label class="label">Quantity</label>
+            <input class="input entry-quantity" type="number" min="1" step="1" placeholder="1" value="${values && values.quantity ? escapeHtml(String(values.quantity)) : ''}" required />
+          </div>
+
+          <div class="field">
+            <label class="label">Unit price</label>
+            <input class="input entry-unit-price" type="number" min="0" step="0.01" placeholder="3490.00" value="${values && values.unit_price ? escapeHtml(String(values.unit_price)) : ''}" required />
+          </div>
+
+          <div class="field">
+            <label class="label">Currency note</label>
+            <input class="input" type="text" value="Uses customer currency" disabled />
+          </div>
+        </div>
+      `;
+
+      const removeButton = row.querySelector('.remove-entry-btn');
+      removeButton.addEventListener('click', function () {
+        const rows = entriesWrap.querySelectorAll('.entry-row');
+        if (rows.length === 1) {
+          notice.textContent = 'At least one invoice entry is required.';
+          notice.className = 'notice';
+          return;
+        }
+
+        row.remove();
+      });
+
+      entriesWrap.appendChild(row);
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function resetEntries() {
+      entriesWrap.innerHTML = '';
+      createEntryRow();
+    }
+
+    function setDefaultDates() {
+      const today = new Date();
+      const due = new Date();
+      due.setDate(today.getDate() + 14);
+
+      issueDateInput.value = formatDate(today);
+      dueDateInput.value = formatDate(due);
+    }
+
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    function collectEntries() {
+      const rows = entriesWrap.querySelectorAll('.entry-row');
+
+      return Array.from(rows).map(function (row) {
+        return {
+          service: row.querySelector('.entry-service').value.trim(),
+          quantity: Number(row.querySelector('.entry-quantity').value),
+          unit_price: Number(row.querySelector('.entry-unit-price').value)
+        };
+      });
+    }
+
+    function validateInvoice(invoice) {
+      if (!invoice.customer_id) {
+        return 'Please select a customer.';
+      }
+
+      if (!invoice.issue_date || !invoice.due_date) {
+        return 'Please enter both issue date and due date.';
+      }
+
+      if (invoice.due_date < invoice.issue_date) {
+        return 'Due date cannot be earlier than issue date.';
+      }
+
+      if (!invoice.entries.length) {
+        return 'At least one invoice entry is required.';
+      }
+
+      for (const entry of invoice.entries) {
+        if (!entry.service) {
+          return 'Each invoice entry must include a service name.';
+        }
+
+        if (!Number.isFinite(entry.quantity) || entry.quantity < 1) {
+          return 'Each invoice entry must have a quantity of at least 1.';
+        }
+
+        if (!Number.isFinite(entry.unit_price) || entry.unit_price < 0) {
+          return 'Each invoice entry must have a valid unit price.';
+        }
+      }
+
+      return '';
+    }
+
+    invoiceForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      const customers = getStoredCustomers();
+      const invoices = getStoredInvoices();
+
+      if (!customers.length) {
+        notice.textContent = 'No customers found. Register a customer first.';
+        notice.className = 'notice';
+        return;
+      }
+
+      const existingIds = new Set(
+        invoices
+          .map(function (invoice) { return String(invoice.invoice_id); })
+          .filter(Boolean)
+      );
+
+      let invoiceId;
+
+      try {
+        invoiceId = generateUniqueInvoiceId(existingIds);
+      } catch (error) {
+        notice.textContent = error.message;
+        notice.className = 'notice';
+        return;
+      }
+
+      const invoice = {
+        invoice_id: invoiceId,
+        customer_id: customerSelect.value,
+        issue_date: issueDateInput.value,
+        due_date: dueDateInput.value,
+        entries: collectEntries()
+      };
+
+      const validationMessage = validateInvoice(invoice);
+      if (validationMessage) {
+        notice.textContent = validationMessage;
+        notice.className = 'notice';
+        return;
+      }
+
+      invoices.push(invoice);
+      saveStoredInvoices(invoices);
+
+      notice.textContent = 'Invoice registered successfully with ID ' + invoice.invoice_id + '.';
+      notice.className = 'notice success';
+
+      invoiceForm.reset();
+      setDefaultDates();
+      resetEntries();
+    });
+
+    addEntryBtn.addEventListener('click', function () {
+      createEntryRow();
+      notice.textContent = '';
+      notice.className = 'notice';
+    });
+
+    clearFormBtn.addEventListener('click', function () {
+      invoiceForm.reset();
+      setDefaultDates();
+      resetEntries();
+      notice.textContent = '';
+      notice.className = 'notice';
+    });
+
+    populateCustomers();
+    setDefaultDates();
+    resetEntries();
+  </script>
+</body>
+</html>
