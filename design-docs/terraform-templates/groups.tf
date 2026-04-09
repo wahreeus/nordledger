@@ -82,6 +82,7 @@ resource "aws_iam_group" "groups" {
 
 resource "aws_iam_policy" "group_policy" {
   for_each = local.group_policies
+
   name        = "${each.key}-policy"
   description = each.value.description
   policy = jsonencode({
@@ -92,6 +93,7 @@ resource "aws_iam_policy" "group_policy" {
 
 resource "aws_iam_group_policy_attachment" "group_policy_attachment" {
   for_each = local.group_policies
+
   group      = aws_iam_group.groups[each.key].name
   policy_arn = aws_iam_policy.group_policy[each.key].arn
 }

@@ -1,1 +1,7 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+build/
 .DS_Store
