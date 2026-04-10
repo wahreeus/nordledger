@@ -6,6 +6,6 @@
 .DS_Store
 app/
 build/
-design_docs/
+design-docs/
 terraform-templates/
 app/
