@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NordLedger Signing In</title>
+  <style>
+    :root {
+      --bg: #020817;
+      --card-bg: #ffffff;
+      --text: #ffffff;
+      --dark: #020617;
+      --soft-2: #64748b;
+      --danger: #b91c1c;
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      --radius-xl: 28px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      font-family: var(--font);
+    }
+
+    body {
+      color: var(--text);
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.18), transparent 32%),
+        linear-gradient(to bottom, rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.9));
+    }
+
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--card-bg);
+      color: var(--dark);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      animation: fadeUp 0.45s ease forwards;
+    }
+
+    .title {
+      margin: 0 0 10px;
+      font-size: 32px;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .copy {
+      margin: 0;
+      color: var(--soft-2);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .copy.error {
+      color: var(--danger);
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h1 class="title">Signing you in</h1>
+      <p class="copy" id="statusText">Completing secure authentication and preparing your dashboard.</p>
+    </div>
+  </div>
+
+  <script>
+    const config = {
+      cognitoDomain: 'https://REPLACE_WITH_COGNITO_DOMAIN',
+      clientId: 'REPLACE_WITH_APP_CLIENT_ID',
+      redirectUri: 'https://REPLACE_WITH_SITE_DOMAIN/callback.html',
+      dashboardPath: '/dashboard.html'
+    };
+
+    const statusText = document.getElementById('statusText');
+
+    async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const returnedState = params.get('state');
+      const error = params.get('error');
+      const errorDescription = params.get('error_description');
+
+      if (error) {
+        statusText.textContent = `Sign-in failed: ${errorDescription || error}`;
+        statusText.classList.add('error');
+        return;
+      }
+
+      const expectedState = sessionStorage.getItem('oauth_state');
+      const codeVerifier = sessionStorage.getItem('pkce_verifier');
+
+      if (!code || !returnedState || returnedState !== expectedState || !codeVerifier) {
+        statusText.textContent = 'Sign-in failed: missing or invalid authorization response.';
+        statusText.classList.add('error');
+        return;
+      }
+
+      try {
+        const body = new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: config.clientId,
+          code,
+          redirect_uri: config.redirectUri,
+          code_verifier: codeVerifier
+        });
+
+        const response = await fetch(config.cognitoDomain + '/oauth2/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: body.toString()
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error_description || result.error || 'Token exchange failed.');
+        }
+
+        sessionStorage.setItem('id_token', result.id_token || '');
+        sessionStorage.setItem('access_token', result.access_token || '');
+        sessionStorage.setItem('refresh_token', result.refresh_token || '');
+        sessionStorage.removeItem('oauth_state');
+        sessionStorage.removeItem('pkce_verifier');
+
+        statusText.textContent = 'Authentication complete. Redirecting to dashboard...';
+        window.location.replace(config.dashboardPath);
+      } catch (exchangeError) {
+        console.error(exchangeError);
+        statusText.textContent = `Sign-in failed: ${exchangeError.message}`;
+        statusText.classList.add('error');
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>

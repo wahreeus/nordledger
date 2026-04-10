@@ -15,7 +15,6 @@ data "aws_region" "current" {}
 locals {
   az_a = data.aws_availability_zones.available.names[0]
   az_b = data.aws_availability_zones.available.names[1]
-
   common_tags = {
     Project = var.project_name
   }
@@ -29,7 +28,6 @@ resource "aws_vpc" "nordledger" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
-
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-vpc"
   })
@@ -44,7 +42,6 @@ resource "aws_subnet" "private_a" {
   cidr_block              = var.private_subnet_a_cidr
   availability_zone       = local.az_a
   map_public_ip_on_launch = false
-
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-private-a"
     Tier = "private"
@@ -57,7 +54,6 @@ resource "aws_subnet" "private_b" {
   cidr_block              = var.private_subnet_b_cidr
   availability_zone       = local.az_b
   map_public_ip_on_launch = false
-
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-private-b"
     Tier = "private"
@@ -71,7 +67,6 @@ resource "aws_subnet" "private_b" {
 
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.nordledger.id
-
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-private-rt"
   })
@@ -95,11 +90,9 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.nordledger.id
   service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
   vpc_endpoint_type = "Gateway"
-
   route_table_ids = [
     aws_route_table.private.id
   ]
-
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-s3-endpoint"
   })

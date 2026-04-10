@@ -1,30 +1,43 @@
 ############################
-# Network Outputs
+# Frontend Outputs
 ############################
 
-output "vpc_id" {
-  value = aws_vpc.nordledger.id
+output "frontend_bucket_name" {
+  value = aws_s3_bucket.frontend_bucket.bucket
 }
 
-output "private_subnet_ids" {
-  value = [
-    aws_subnet.private_a.id,
-    aws_subnet.private_b.id
-  ]
+output "cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.frontend_distribution.id
 }
 
-output "db_subnet_group_name" {
-  value = aws_db_subnet_group.nordledger.name
+output "cloudfront_domain_name" {
+  value = aws_cloudfront_distribution.frontend_distribution.domain_name
 }
 
-output "lambda_security_group_id" {
-  value = aws_security_group.lambda.id
+output "frontend_url" {
+  value = "https://${aws_cloudfront_distribution.frontend_distribution.domain_name}"
 }
 
-output "rds_security_group_id" {
-  value = aws_security_group.rds.id
+output "frontend_base_url" {
+  value = "https://${aws_cloudfront_distribution.frontend_distribution.domain_name}"
 }
 
-output "s3_vpc_endpoint_id" {
-  value = aws_vpc_endpoint.s3.id
+############################
+# Authentication Outputs
+############################
+
+output "cognito_user_pool_id" {
+  value = aws_cognito_user_pool.frontend_auth.id
+}
+
+output "cognito_app_client_id" {
+  value = aws_cognito_user_pool_client.frontend_auth.id
+}
+
+output "cognito_domain" {
+  value = "${aws_cognito_user_pool_domain.frontend_auth.domain}.auth.${data.aws_region.current.name}.amazoncognito.com"
+}
+
+output "cognito_login_url" {
+  value = "https://${aws_cognito_user_pool_domain.frontend_auth.domain}.auth.${data.aws_region.current.name}.amazoncognito.com/oauth2/authorize?response_type=code&client_id=${aws_cognito_user_pool_client.frontend_auth.id}&redirect_uri=https://${aws_cloudfront_distribution.frontend_distribution.domain_name}/callback.html&scope=openid+email+profile"
 }
