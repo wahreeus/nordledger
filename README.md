@@ -12,7 +12,8 @@ Rather than focusing on extensive application feature development, this project 
 
 This project is currently in the early planning and development stages. Figure 1 illustrates a design concept for a client MVP demo. 
 
-<figure style="text-align: center;">
+<p align="center">
   <img src="documentation/figures/nordledger-client-mvp.svg" alt="NordLedger Client MVP">
-  <figcaption><em>Figure 1: Design concept for a client MVP demo.</em></figcaption>
-</figure>
+  <br>
+  <em>Figure 1: Design concept for a client MVP demo.</em>
+</p>
