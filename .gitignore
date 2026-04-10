@@ -3,5 +3,9 @@
 *.tfstate.*
 *.tfvars
 *.tfvars.json
-build/
 .DS_Store
+app/
+build/
+design_docs/
+terraform-templates/
+app/
