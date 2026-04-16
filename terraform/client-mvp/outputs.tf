@@ -1,3 +1,8 @@
+output "aws_region" {
+  description = "The current AWS region"
+  value       = data.aws_region.current.name
+}
+
 ############################
 # Frontend Outputs
 ############################

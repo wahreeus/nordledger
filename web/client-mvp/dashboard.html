@@ -12,27 +12,48 @@
       --text: #0f172a;
       --muted: #64748b;
       --soft: #f1f5f9;
-      --soft-2: #e2e8f0;
       --button: #0f172a;
       --button-hover: #1e293b;
-      --success-bg: #ecfdf5;
-      --success-border: #bbf7d0;
-      --success-text: #047857;
       --danger-bg: #fef2f2;
       --danger-text: #b91c1c;
       --radius-xl: 28px;
-      --radius-lg: 18px;
       --shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
       --font: Inter, Arial, sans-serif;
     }
 
     * { box-sizing: border-box; }
 
+    html.auth-loading main.page {
+      visibility: hidden;
+    }
+
     body {
       margin: 0;
       font-family: var(--font);
       background: var(--bg);
       color: var(--text);
+    }
+
+    .auth-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(248, 250, 252, 0.96);
+      z-index: 1000;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .auth-loader.hidden {
+      display: none;
+    }
+
+    .auth-loader.error {
+      color: var(--danger-text);
     }
 
     .page {
@@ -140,6 +161,8 @@
       cursor: pointer;
       transition: 0.2s ease;
       border: 1px solid transparent;
+      font-family: inherit;
+      background: transparent;
     }
 
     .button-secondary {
@@ -278,12 +301,6 @@
       color: var(--danger-text);
     }
 
-    .pdf-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
     .table-link {
       color: var(--text);
       font-weight: 600;
@@ -292,6 +309,10 @@
 
     .table-link:hover {
       text-decoration: underline;
+    }
+
+    .muted-text {
+      color: var(--muted);
     }
 
     .portfolio-title {
@@ -347,22 +368,27 @@
       }
     }
   </style>
+  <script>
+    document.documentElement.classList.add("auth-loading");
+  </script>
 </head>
 <body>
+  <div class="auth-loader" id="authLoader">Checking your session…</div>
+
   <main class="page">
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark">NL</div>
         <div>
           <p class="brand-title">NordLedger</p>
-          <p class="brand-subtitle">Billing and revenue operations</p>
+          <p class="brand-subtitle" id="sessionLabel">Verifying session…</p>
         </div>
       </div>
 
       <nav class="nav" aria-label="Primary">
         <a href="register-customer.html" class="button button-secondary">Register customer</a>
         <a href="register-invoice.html" class="button button-secondary">Register invoice</a>
-        <a href="index.html" class="button button-secondary">Sign out</a>
+        <button type="button" class="button button-secondary" id="signOutButton">Sign out</button>
       </nav>
     </header>
 
@@ -383,7 +409,7 @@
         <article class="card summary-card">
           <div>
             <div class="eyebrow">Registered customers</div>
-            <div class="big-number">48</div>
+            <div class="big-number" id="customerCount">0</div>
           </div>
           <div class="icon-box">👤</div>
         </article>
@@ -391,7 +417,7 @@
         <article class="card summary-card">
           <div>
             <div class="eyebrow">Registered invoices</div>
-            <div class="big-number">126</div>
+            <div class="big-number" id="invoiceCount">0</div>
           </div>
           <div class="icon-box">📄</div>
         </article>
@@ -414,39 +440,9 @@
                 <th>PDF</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="invoiceTableBody">
               <tr>
-                <td><strong>INV-2026-4812</strong></td>
-                <td>Acme Analytics GmbH</td>
-                <td>€2,490</td>
-                <td><span class="badge badge-pending">Pending</span></td>
-                <td>
-                  <div class="pdf-actions">
-                    <a href="invoices/INV-2026-4812.pdf" download class="table-link">Download</a>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td><strong>INV-2026-4813</strong></td>
-                <td>NorthStar Retail AB</td>
-                <td>€1,280</td>
-                <td><span class="badge badge-pending">Pending</span></td>
-                <td>
-                  <div class="pdf-actions">
-                    <a href="invoices/INV-2026-4813.pdf" download class="table-link">Download</a>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td><strong>INV-2026-4814</strong></td>
-                <td>BluePeak Health Ltd</td>
-                <td>€3,920</td>
-                <td><span class="badge badge-overdue">Overdue</span></td>
-                <td>
-                  <div class="pdf-actions">
-                    <a href="invoices/INV-2026-4814.pdf" download class="table-link">Download</a>
-                  </div>
-                </td>
+                <td colspan="5" class="muted-text">Loading invoices…</td>
               </tr>
             </tbody>
           </table>
@@ -464,5 +460,99 @@
       </aside>
     </section>
   </main>
+
+  <script type="module">
+    import { getUserDisplayName, getUserKey, requireAuth, signOut } from "./auth.js";
+    import { calculateInvoiceTotal, findCustomerById, getCustomers, getInvoices } from "./app-data.js";
+
+    const authLoader = document.getElementById("authLoader");
+    const sessionLabel = document.getElementById("sessionLabel");
+    const signOutButton = document.getElementById("signOutButton");
+    const customerCount = document.getElementById("customerCount");
+    const invoiceCount = document.getElementById("invoiceCount");
+    const invoiceTableBody = document.getElementById("invoiceTableBody");
+
+    signOutButton.addEventListener("click", () => signOut());
+
+    function releasePage() {
+      authLoader.classList.add("hidden");
+      document.documentElement.classList.remove("auth-loading");
+    }
+
+    function showAuthError(message) {
+      authLoader.textContent = message;
+      authLoader.classList.add("error");
+      document.documentElement.classList.remove("auth-loading");
+    }
+
+    function formatMoney(amount, currency) {
+      try {
+        return new Intl.NumberFormat("en", {
+          style: "currency",
+          currency: currency || "EUR",
+          maximumFractionDigits: 2
+        }).format(amount);
+      } catch (error) {
+        return `${amount.toFixed(2)} ${currency || "EUR"}`;
+      }
+    }
+
+    function getStatus(invoice) {
+      const todayKey = new Date().toISOString().slice(0, 10);
+      return invoice.due_date < todayKey ? "Overdue" : "Pending";
+    }
+
+    function renderInvoices(userKey) {
+      const customers = getCustomers(userKey);
+      const invoices = getInvoices(userKey);
+
+      customerCount.textContent = String(customers.length);
+      invoiceCount.textContent = String(invoices.length);
+
+      if (!invoices.length) {
+        invoiceTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="muted-text">No registered invoices.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      invoiceTableBody.innerHTML = invoices
+        .slice()
+        .reverse()
+        .map((invoice) => {
+          const customer = findCustomerById(customers, invoice.customer_id);
+          const status = getStatus(invoice);
+          const total = calculateInvoiceTotal(invoice);
+          const currency = customer?.currency || "EUR";
+          const badgeClass = status === "Overdue" ? "badge-overdue" : "badge-pending";
+          const customerName = customer?.company_name || `Customer ${invoice.customer_id}`;
+          const pdfHref = `invoices/${invoice.invoice_id}.pdf`;
+
+          return `
+            <tr>
+              <td><strong>${invoice.invoice_id}</strong></td>
+              <td>${customerName}</td>
+              <td>${formatMoney(total, currency)}</td>
+              <td><span class="badge ${badgeClass}">${status}</span></td>
+              <td><a href="${pdfHref}" download class="table-link">Download</a></td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    (async function initDashboard() {
+      try {
+        const session = await requireAuth({ requestedPath: window.location.pathname });
+        sessionLabel.textContent = "Signed in as " + getUserDisplayName(session);
+        renderInvoices(getUserKey(session));
+        releasePage();
+      } catch (error) {
+        showAuthError(error?.message || "Authentication could not be completed.");
+      }
+    })();
+  </script>
 </body>
 </html>

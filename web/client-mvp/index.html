@@ -125,6 +125,10 @@
       text-align: center;
     }
 
+    .feedback.error {
+      color: #b91c1c;
+    }
+
     @keyframes fadeUp {
       from {
         opacity: 0;
@@ -171,67 +175,44 @@
             </svg>
           </button>
           <p class="note">Authentication is handled by Amazon Cognito. After successful sign-in, you will be directed to the NordLedger dashboard.</p>
-          <div class="feedback" id="feedback"></div>
+          <div class="feedback" id="feedback" aria-live="polite"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <script>
-    const config = {
-      cognitoDomain: 'https://REPLACE_WITH_COGNITO_DOMAIN',
-      clientId: 'REPLACE_WITH_APP_CLIENT_ID',
-      redirectUri: 'https://REPLACE_WITH_SITE_DOMAIN/callback.html',
-      scope: 'openid email profile'
-    };
+  <script type="module">
+    import { beginLogin, getSession } from "./auth.js";
 
-    const signInButton = document.getElementById('signInButton');
-    const feedback = document.getElementById('feedback');
+    const signInButton = document.getElementById("signInButton");
+    const feedback = document.getElementById("feedback");
 
-    function base64UrlEncode(arrayBuffer) {
-      return btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-    }
-
-    async function sha256(text) {
-      const data = new TextEncoder().encode(text);
-      return crypto.subtle.digest('SHA-256', data);
-    }
-
-    async function startSignIn() {
+    signInButton.addEventListener("click", async () => {
       signInButton.disabled = true;
-      feedback.textContent = 'Redirecting to sign-in...';
+      feedback.classList.remove("error");
+      feedback.textContent = "Redirecting to sign-in...";
 
       try {
-        const verifierBytes = crypto.getRandomValues(new Uint8Array(32));
-        const codeVerifier = Array.from(verifierBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-        const challengeBytes = await sha256(codeVerifier);
-        const codeChallenge = base64UrlEncode(challengeBytes);
-        const state = crypto.randomUUID();
-
-        sessionStorage.setItem('pkce_verifier', codeVerifier);
-        sessionStorage.setItem('oauth_state', state);
-
-        const authorizeUrl = new URL(config.cognitoDomain + '/oauth2/authorize');
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', config.clientId);
-        authorizeUrl.searchParams.set('redirect_uri', config.redirectUri);
-        authorizeUrl.searchParams.set('scope', config.scope);
-        authorizeUrl.searchParams.set('state', state);
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        authorizeUrl.searchParams.set('code_challenge', codeChallenge);
-
-        window.location.href = authorizeUrl.toString();
+        await beginLogin({ requestedPath: "/dashboard.html" });
       } catch (error) {
         console.error(error);
-        feedback.textContent = 'Unable to start sign-in. Check your Cognito configuration.';
+        feedback.textContent = error.message || "Unable to start sign-in.";
+        feedback.classList.add("error");
         signInButton.disabled = false;
       }
-    }
+    });
 
-    signInButton.addEventListener('click', startSignIn);
+    (async function checkExistingSession() {
+      const session = await getSession();
+
+      if (session.isValid) {
+        feedback.textContent = "Existing session found. Redirecting to dashboard...";
+        window.location.replace("/dashboard.html");
+      } else if (session.error) {
+        feedback.textContent = session.error.message;
+        feedback.classList.add("error");
+      }
+    })();
   </script>
 </body>
 </html>

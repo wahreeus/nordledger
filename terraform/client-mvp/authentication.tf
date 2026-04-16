@@ -33,6 +33,7 @@ resource "aws_cognito_user_pool_client" "frontend_auth" {
     "https://${aws_cloudfront_distribution.frontend_distribution.domain_name}/callback.html"
   ]
   logout_urls = [
+    "https://${aws_cloudfront_distribution.frontend_distribution.domain_name}/index.html",
     "https://${aws_cloudfront_distribution.frontend_distribution.domain_name}/"
   ]
 }

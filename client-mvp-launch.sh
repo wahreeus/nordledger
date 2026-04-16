@@ -5,6 +5,7 @@ TF_DIR="terraform/client-mvp"
 FRONTEND_DIR="web/client-mvp"
 INDEX_FILE="$FRONTEND_DIR/index.html"
 CALLBACK_FILE="$FRONTEND_DIR/callback.html"
+AUTH_FILE="$FRONTEND_DIR/auth.js"
 
 if [ ! -d "$TF_DIR" ]; then
   echo "Error: Terraform directory '$TF_DIR' does not exist."
@@ -23,6 +24,11 @@ fi
 
 if [ ! -f "$CALLBACK_FILE" ]; then
   echo "Error: callback file '$CALLBACK_FILE' does not exist."
+  exit 1
+fi
+
+if [ ! -f "$AUTH_FILE" ]; then
+  echo "Error: callback file '$AUTH_FILE' does not exist."
   exit 1
 fi
 
@@ -52,6 +58,7 @@ echo "Applying Terraform in $TF_DIR ..."
 terraform -chdir="$TF_DIR" apply
 
 echo "Reading Terraform outputs..."
+AWS_REGION="$(terraform -chdir="$TF_DIR" output -raw aws_region 2>/dev/null || true)"
 BUCKET_NAME="$(terraform -chdir="$TF_DIR" output -raw frontend_bucket_name 2>/dev/null || true)"
 CF_DIST_ID="$(terraform -chdir="$TF_DIR" output -raw cloudfront_distribution_id 2>/dev/null || true)"
 SITE_DOMAIN="$(terraform -chdir="$TF_DIR" output -raw cloudfront_domain_name 2>/dev/null || true)"
@@ -59,6 +66,8 @@ SITE_URL="$(terraform -chdir="$TF_DIR" output -raw frontend_url 2>/dev/null || t
 LOGIN_URL="$(terraform -chdir="$TF_DIR" output -raw cognito_login_url 2>/dev/null || true)"
 COGNITO_DOMAIN="$(terraform -chdir="$TF_DIR" output -raw cognito_domain 2>/dev/null || true)"
 CLIENT_ID="$(terraform -chdir="$TF_DIR" output -raw cognito_app_client_id 2>/dev/null || true)"
+POOL_ID="$(terraform -chdir="$TF_DIR" output -raw cognito_user_pool_id 2>/dev/null || true)"
+
 
 if [ -z "$BUCKET_NAME" ]; then
   echo "Error: Terraform output 'frontend_bucket_name' was not found."
@@ -99,6 +108,14 @@ sed \
   -e "s|REPLACE_WITH_APP_CLIENT_ID|$(escape_sed "$CLIENT_ID")|g" \
   -e "s|REPLACE_WITH_SITE_DOMAIN|$(escape_sed "$SITE_DOMAIN")|g" \
   "$CALLBACK_FILE" > "$TMP_DIR/callback.html"
+
+echo "Rendering auth.js ..."
+sed \
+  -e "s|REPLACE_WITH_COGNITO_DOMAIN|$(escape_sed "$COGNITO_DOMAIN")|g" \
+  -e "s|REPLACE_WITH_APP_CLIENT_ID|$(escape_sed "$CLIENT_ID")|g" \
+  -e "s|REPLACE_WITH_USER_POOL_ID|$(escape_sed "$POOL_ID")|g" \
+  -e "s|REPLACE_WITH_AWS_REGION|$(escape_sed "$AWS_REGION")|g" \
+  "$AUTH_FILE" > "$TMP_DIR/auth.js"
 
 echo "Uploading frontend files to s3://$BUCKET_NAME ..."
 aws s3 sync "$TMP_DIR/" "s3://$BUCKET_NAME/" --delete

@@ -14,19 +14,45 @@
       --soft: #f1f5f9;
       --button: #0f172a;
       --button-hover: #1e293b;
+      --danger-text: #b91c1c;
       --radius-xl: 28px;
-      --radius-lg: 18px;
       --shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
       --font: Inter, Arial, sans-serif;
     }
 
     * { box-sizing: border-box; }
 
+    html.auth-loading main.page {
+      visibility: hidden;
+    }
+
     body {
       margin: 0;
       font-family: var(--font);
       background: var(--bg);
       color: var(--text);
+    }
+
+    .auth-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(248, 250, 252, 0.96);
+      z-index: 1000;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .auth-loader.hidden {
+      display: none;
+    }
+
+    .auth-loader.error {
+      color: var(--danger-text);
     }
 
     .page {
@@ -36,7 +62,6 @@
     }
 
     .topbar,
-    .hero,
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -92,41 +117,6 @@
       flex-wrap: wrap;
     }
 
-    .hero {
-      padding: 28px;
-      margin-bottom: 20px;
-    }
-
-    .hero-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 40px;
-      line-height: 1.05;
-      letter-spacing: -0.04em;
-    }
-
-    .hero p {
-      margin: 12px 0 0;
-      max-width: 720px;
-      font-size: 15px;
-      line-height: 1.75;
-      color: var(--muted);
-    }
-
-    .actions,
-    .button-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
     .button,
     .submit-btn {
       display: inline-flex;
@@ -143,16 +133,15 @@
       transition: 0.2s ease;
       border: 1px solid transparent;
       font-family: inherit;
+      background: transparent;
     }
 
-    .button-primary,
     .submit-btn {
       background: var(--button);
       color: #ffffff;
       border-color: var(--button);
     }
 
-    .button-primary:hover,
     .submit-btn:hover {
       background: var(--button-hover);
       border-color: var(--button-hover);
@@ -228,13 +217,6 @@
       box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
     }
 
-    .helper {
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
     .notice {
       margin-top: 18px;
       min-height: 22px;
@@ -246,22 +228,12 @@
       color: #14805e;
     }
 
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.95em;
-    }
-
-    @media (max-width: 960px) {
-      h1 { font-size: 32px; }
-    }
-
     @media (max-width: 720px) {
       .page {
         padding: 20px 16px 36px;
       }
 
       .topbar,
-      .hero,
       .card {
         padding: 20px;
         border-radius: 24px;
@@ -272,21 +244,26 @@
       }
     }
   </style>
+  <script>
+    document.documentElement.classList.add("auth-loading");
+  </script>
 </head>
 <body>
+  <div class="auth-loader" id="authLoader">Checking your session…</div>
+
   <main class="page">
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark">NL</div>
         <div>
           <p class="brand-title">NordLedger</p>
-          <p class="brand-subtitle">Billing and revenue operations</p>
+          <p class="brand-subtitle" id="sessionLabel">Verifying session…</p>
         </div>
       </div>
 
       <nav class="nav" aria-label="Primary">
         <a href="dashboard.html" class="button button-secondary">Back to dashboard</a>
-        <a href="index.html" class="button button-secondary">Sign out</a>
+        <button type="button" class="button button-secondary" id="signOutButton">Sign out</button>
       </nav>
     </header>
 
@@ -303,8 +280,8 @@
         </div>
 
         <div class="field">
-          <label class="label" for="streetadress">Street address</label>
-          <input class="input" id="streetadress" name="streetadress" type="text" placeholder="Alexanderplatz 5" required />
+          <label class="label" for="streetaddress">Street address</label>
+          <input class="input" id="streetaddress" name="streetaddress" type="text" placeholder="Alexanderplatz 5" required />
         </div>
 
         <div class="two-col">
@@ -333,7 +310,7 @@
           </div>
         </div>
 
-        <div class="button-row">
+        <div class="nav">
           <button class="submit-btn" type="submit">Register customer</button>
           <button class="button button-secondary" type="button" id="clearFormBtn">Clear</button>
         </div>
@@ -343,113 +320,115 @@
     </section>
   </main>
 
-  <script>
-    const STORAGE_KEY = 'nordledger_customers';
-    const form = document.getElementById('customerForm');
-    const notice = document.getElementById('notice');
-    const clearFormBtn = document.getElementById('clearFormBtn');
-    const currencySelect = document.getElementById('currency');
+  <script type="module">
+    import { getUserDisplayName, getUserKey, requireAuth, signOut } from "./auth.js";
+    import { generateUniqueDigits, getCustomers, saveCustomers } from "./app-data.js";
+
+    const authLoader = document.getElementById("authLoader");
+    const sessionLabel = document.getElementById("sessionLabel");
+    const signOutButton = document.getElementById("signOutButton");
+    const form = document.getElementById("customerForm");
+    const notice = document.getElementById("notice");
+    const clearFormBtn = document.getElementById("clearFormBtn");
+    const currencySelect = document.getElementById("currency");
+
+    let currentUserKey = null;
+
+    signOutButton.addEventListener("click", () => signOut());
+
+    function releasePage() {
+      authLoader.classList.add("hidden");
+      document.documentElement.classList.remove("auth-loading");
+    }
+
+    function showAuthError(message) {
+      authLoader.textContent = message;
+      authLoader.classList.add("error");
+      document.documentElement.classList.remove("auth-loading");
+    }
 
     function populateCurrencies() {
       let currencies = [];
 
       try {
-        if (window.Intl && typeof Intl.supportedValuesOf === 'function') {
-          currencies = Intl.supportedValuesOf('currency');
+        if (window.Intl && typeof Intl.supportedValuesOf === "function") {
+          currencies = Intl.supportedValuesOf("currency");
         }
       } catch (error) {
         currencies = [];
       }
 
       if (!currencies.length) {
-        currencies = ['EUR', 'SEK', 'USD', 'GBP'];
+        currencies = ["EUR", "SEK", "USD", "GBP"];
       }
 
-      const preferred = ['EUR', 'SEK', 'USD', 'GBP'];
+      const preferred = ["EUR", "SEK", "USD", "GBP"];
       const ordered = [...new Set([...preferred, ...currencies.sort()])];
 
-      ordered.forEach(function (code) {
-        const option = document.createElement('option');
+      ordered.forEach((code) => {
+        const option = document.createElement("option");
         option.value = code;
         option.textContent = code;
         currencySelect.appendChild(option);
       });
     }
 
-    function getStoredCustomers() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        return [];
-      }
-    }
-
-    function saveStoredCustomers(customers) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customers, null, 2));
-    }
-
-    function generateUniqueCustomerId(existingIds) {
-      let attempts = 0;
-
-      while (attempts < 10000) {
-        const id = String(Math.floor(100000 + Math.random() * 900000));
-        if (!existingIds.has(id)) {
-          return id;
-        }
-        attempts += 1;
-      }
-
-      throw new Error('Unable to generate a unique customer ID.');
-    }
-
-    form.addEventListener('submit', function (event) {
+    form.addEventListener("submit", (event) => {
       event.preventDefault();
 
-      const customers = getStoredCustomers();
+      const customers = getCustomers(currentUserKey);
       const existingIds = new Set(
         customers
-          .map(function (customer) { return String(customer.customer_id); })
+          .map((customer) => String(customer.customer_id))
           .filter(Boolean)
       );
 
       let customerId;
 
       try {
-        customerId = generateUniqueCustomerId(existingIds);
+        customerId = generateUniqueDigits(existingIds, 6);
       } catch (error) {
         notice.textContent = error.message;
-        notice.className = 'notice';
+        notice.className = "notice";
         return;
       }
 
       const customer = {
         customer_id: customerId,
-        company_name: document.getElementById('company_name').value.trim(),
-        streetadress: document.getElementById('streetadress').value.trim(),
-        postalcode: document.getElementById('postalcode').value.trim(),
-        city: document.getElementById('city').value.trim(),
-        country: document.getElementById('country').value.trim(),
-        currency: document.getElementById('currency').value
+        company_name: document.getElementById("company_name").value.trim(),
+        streetaddress: document.getElementById("streetaddress").value.trim(),
+        postalcode: document.getElementById("postalcode").value.trim(),
+        city: document.getElementById("city").value.trim(),
+        country: document.getElementById("country").value.trim(),
+        currency: document.getElementById("currency").value
       };
 
       customers.push(customer);
-      saveStoredCustomers(customers);
+      saveCustomers(currentUserKey, customers);
 
-      notice.textContent = 'Customer registered successfully with ID ' + customer.customer_id + '.';
-      notice.className = 'notice success';
-
+      notice.textContent = "Customer registered successfully with ID " + customer.customer_id + ".";
+      notice.className = "notice success";
       form.reset();
     });
 
-    clearFormBtn.addEventListener('click', function () {
+    clearFormBtn.addEventListener("click", () => {
       form.reset();
-      notice.textContent = '';
-      notice.className = 'notice';
+      notice.textContent = "";
+      notice.className = "notice";
     });
 
     populateCurrencies();
+
+    (async function initPage() {
+      try {
+        const session = await requireAuth({ requestedPath: window.location.pathname });
+        currentUserKey = getUserKey(session);
+        sessionLabel.textContent = "Signed in as " + getUserDisplayName(session);
+        releasePage();
+      } catch (error) {
+        showAuthError(error?.message || "Authentication could not be completed.");
+      }
+    })();
   </script>
 </body>
 </html>

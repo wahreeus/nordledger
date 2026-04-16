@@ -14,19 +14,45 @@
       --soft: #f1f5f9;
       --button: #0f172a;
       --button-hover: #1e293b;
+      --danger-text: #b91c1c;
       --radius-xl: 28px;
-      --radius-lg: 18px;
       --shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
       --font: Inter, Arial, sans-serif;
     }
 
     * { box-sizing: border-box; }
 
+    html.auth-loading main.page {
+      visibility: hidden;
+    }
+
     body {
       margin: 0;
       font-family: var(--font);
       background: var(--bg);
       color: var(--text);
+    }
+
+    .auth-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(248, 250, 252, 0.96);
+      z-index: 1000;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .auth-loader.hidden {
+      display: none;
+    }
+
+    .auth-loader.error {
+      color: var(--danger-text);
     }
 
     .page {
@@ -36,7 +62,6 @@
     }
 
     .topbar,
-    .hero,
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -85,42 +110,7 @@
       color: var(--muted);
     }
 
-    .nav {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .hero {
-      padding: 28px;
-      margin-bottom: 20px;
-    }
-
-    .hero-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 40px;
-      line-height: 1.05;
-      letter-spacing: -0.04em;
-    }
-
-    .hero p {
-      margin: 12px 0 0;
-      max-width: 720px;
-      font-size: 15px;
-      line-height: 1.75;
-      color: var(--muted);
-    }
-
-    .actions,
+    .nav,
     .button-row,
     .entries-header {
       display: flex;
@@ -150,14 +140,12 @@
       background: transparent;
     }
 
-    .button-primary,
     .submit-btn {
       background: var(--button);
       color: #ffffff;
       border-color: var(--button);
     }
 
-    .button-primary:hover,
     .submit-btn:hover {
       background: var(--button-hover);
       border-color: var(--button-hover);
@@ -290,22 +278,12 @@
       color: #14805e;
     }
 
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.95em;
-    }
-
-    @media (max-width: 960px) {
-      h1 { font-size: 32px; }
-    }
-
     @media (max-width: 720px) {
       .page {
         padding: 20px 16px 36px;
       }
 
       .topbar,
-      .hero,
       .card {
         padding: 20px;
         border-radius: 24px;
@@ -317,28 +295,33 @@
       }
     }
   </style>
+  <script>
+    document.documentElement.classList.add("auth-loading");
+  </script>
 </head>
 <body>
+  <div class="auth-loader" id="authLoader">Checking your session…</div>
+
   <main class="page">
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark">NL</div>
         <div>
           <p class="brand-title">NordLedger</p>
-          <p class="brand-subtitle">Billing and revenue operations</p>
+          <p class="brand-subtitle" id="sessionLabel">Verifying session…</p>
         </div>
       </div>
 
       <nav class="nav" aria-label="Primary">
         <a href="dashboard.html" class="button button-secondary">Back to dashboard</a>
-        <a href="index.html" class="button button-secondary">Sign out</a>
+        <button type="button" class="button button-secondary" id="signOutButton">Sign out</button>
       </nav>
     </header>
 
     <section class="card">
       <h2 class="section-title">Register a new invoice</h2>
       <p class="section-copy">
-       Create a new invoice for an existing customer. Select a customer, add invoice dates, and enter one or more invoice rows.
+        Create a new invoice for an existing customer. Select a customer, add invoice dates, and enter one or more invoice rows.
       </p>
 
       <form class="form" id="invoiceForm">
@@ -384,78 +367,67 @@
     </section>
   </main>
 
-  <script>
-    const CUSTOMER_STORAGE_KEY = 'nordledger_customers';
-    const INVOICE_STORAGE_KEY = 'nordledger_invoices';
+  <script type="module">
+    import { getUserDisplayName, getUserKey, requireAuth, signOut } from "./auth.js";
+    import {
+      findCustomerById,
+      generateUniqueDigits,
+      getCustomers,
+      getInvoices,
+      saveInvoices
+    } from "./app-data.js";
 
-    const invoiceForm = document.getElementById('invoiceForm');
-    const customerSelect = document.getElementById('customer_id');
-    const entriesWrap = document.getElementById('entriesWrap');
-    const addEntryBtn = document.getElementById('addEntryBtn');
-    const clearFormBtn = document.getElementById('clearFormBtn');
-    const notice = document.getElementById('notice');
-    const issueDateInput = document.getElementById('issue_date');
-    const dueDateInput = document.getElementById('due_date');
+    const authLoader = document.getElementById("authLoader");
+    const sessionLabel = document.getElementById("sessionLabel");
+    const signOutButton = document.getElementById("signOutButton");
+    const invoiceForm = document.getElementById("invoiceForm");
+    const customerSelect = document.getElementById("customer_id");
+    const entriesWrap = document.getElementById("entriesWrap");
+    const addEntryBtn = document.getElementById("addEntryBtn");
+    const clearFormBtn = document.getElementById("clearFormBtn");
+    const notice = document.getElementById("notice");
+    const issueDateInput = document.getElementById("issue_date");
+    const dueDateInput = document.getElementById("due_date");
 
-    function getStoredCustomers() {
-      try {
-        const raw = localStorage.getItem(CUSTOMER_STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        return [];
-      }
+    let currentUserKey = null;
+
+    signOutButton.addEventListener("click", () => signOut());
+
+    function releasePage() {
+      authLoader.classList.add("hidden");
+      document.documentElement.classList.remove("auth-loading");
     }
 
-    function getStoredInvoices() {
-      try {
-        const raw = localStorage.getItem(INVOICE_STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        return [];
-      }
-    }
-
-    function saveStoredInvoices(invoices) {
-      localStorage.setItem(INVOICE_STORAGE_KEY, JSON.stringify(invoices, null, 2));
+    function showAuthError(message) {
+      authLoader.textContent = message;
+      authLoader.classList.add("error");
+      document.documentElement.classList.remove("auth-loading");
     }
 
     function populateCustomers() {
-      const customers = getStoredCustomers();
-
+      const customers = getCustomers(currentUserKey);
       customerSelect.innerHTML = '<option value="">Select customer</option>';
 
-      customers.forEach(function (customer) {
-        const option = document.createElement('option');
+      customers.forEach((customer) => {
+        const option = document.createElement("option");
         option.value = customer.customer_id;
-        option.textContent = customer.customer_id + ' - ' + customer.company_name;
+        option.textContent = customer.customer_id + " - " + customer.company_name;
         customerSelect.appendChild(option);
       });
     }
 
-    function generateUniqueInvoiceId(existingIds) {
-      let attempts = 0;
-
-      while (attempts < 10000) {
-        let id = '';
-        for (let i = 0; i < 12; i += 1) {
-          id += Math.floor(Math.random() * 10);
-        }
-
-        if (!existingIds.has(id)) {
-          return id;
-        }
-
-        attempts += 1;
-      }
-
-      throw new Error('Unable to generate a unique invoice ID.');
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     function createEntryRow(values) {
-      const row = document.createElement('div');
-      row.className = 'entry-row';
+      const row = document.createElement("div");
+      row.className = "entry-row";
       row.innerHTML = `
         <div class="entry-top">
           <p class="entry-title">Invoice entry</p>
@@ -464,18 +436,18 @@
 
         <div class="field">
           <label class="label">Service</label>
-          <input class="input entry-service" type="text" placeholder="Retail Billing Platform Subscription" value="${values && values.service ? escapeHtml(values.service) : ''}" required />
+          <input class="input entry-service" type="text" placeholder="Retail Billing Platform Subscription" value="${values && values.service ? escapeHtml(values.service) : ""}" required />
         </div>
 
         <div class="three-col">
           <div class="field">
             <label class="label">Quantity</label>
-            <input class="input entry-quantity" type="number" min="1" step="1" placeholder="1" value="${values && values.quantity ? escapeHtml(String(values.quantity)) : ''}" required />
+            <input class="input entry-quantity" type="number" min="1" step="1" placeholder="1" value="${values && values.quantity ? escapeHtml(String(values.quantity)) : ""}" required />
           </div>
 
           <div class="field">
             <label class="label">Unit price</label>
-            <input class="input entry-unit-price" type="number" min="0" step="0.01" placeholder="3490.00" value="${values && values.unit_price ? escapeHtml(String(values.unit_price)) : ''}" required />
+            <input class="input entry-unit-price" type="number" min="0" step="0.01" placeholder="3490.00" value="${values && values.unit_price ? escapeHtml(String(values.unit_price)) : ""}" required />
           </div>
 
           <div class="field">
@@ -485,12 +457,13 @@
         </div>
       `;
 
-      const removeButton = row.querySelector('.remove-entry-btn');
-      removeButton.addEventListener('click', function () {
-        const rows = entriesWrap.querySelectorAll('.entry-row');
+      const removeButton = row.querySelector(".remove-entry-btn");
+      removeButton.addEventListener("click", () => {
+        const rows = entriesWrap.querySelectorAll(".entry-row");
+
         if (rows.length === 1) {
-          notice.textContent = 'At least one invoice entry is required.';
-          notice.className = 'notice';
+          notice.textContent = "At least one invoice entry is required.";
+          notice.className = "notice";
           return;
         }
 
@@ -500,17 +473,8 @@
       entriesWrap.appendChild(row);
     }
 
-    function escapeHtml(value) {
-      return value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
     function resetEntries() {
-      entriesWrap.innerHTML = '';
+      entriesWrap.innerHTML = "";
       createEntryRow();
     }
 
@@ -525,128 +489,147 @@
 
     function formatDate(date) {
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return year + '-' + month + '-' + day;
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
     }
 
     function collectEntries() {
-      const rows = entriesWrap.querySelectorAll('.entry-row');
+      const rows = entriesWrap.querySelectorAll(".entry-row");
 
-      return Array.from(rows).map(function (row) {
-        return {
-          service: row.querySelector('.entry-service').value.trim(),
-          quantity: Number(row.querySelector('.entry-quantity').value),
-          unit_price: Number(row.querySelector('.entry-unit-price').value)
-        };
-      });
+      return Array.from(rows).map((row) => ({
+        service: row.querySelector(".entry-service").value.trim(),
+        quantity: Number(row.querySelector(".entry-quantity").value),
+        unit_price: Number(row.querySelector(".entry-unit-price").value)
+      }));
     }
 
     function validateInvoice(invoice) {
       if (!invoice.customer_id) {
-        return 'Please select a customer.';
+        return "Please select a customer.";
       }
 
       if (!invoice.issue_date || !invoice.due_date) {
-        return 'Please enter both issue date and due date.';
+        return "Please enter both issue date and due date.";
       }
 
       if (invoice.due_date < invoice.issue_date) {
-        return 'Due date cannot be earlier than issue date.';
+        return "Due date cannot be earlier than issue date.";
       }
 
       if (!invoice.entries.length) {
-        return 'At least one invoice entry is required.';
+        return "At least one invoice entry is required.";
       }
 
       for (const entry of invoice.entries) {
         if (!entry.service) {
-          return 'Each invoice entry must include a service name.';
+          return "Each invoice entry must include a service name.";
         }
 
         if (!Number.isFinite(entry.quantity) || entry.quantity < 1) {
-          return 'Each invoice entry must have a quantity of at least 1.';
+          return "Each invoice entry must have a quantity of at least 1.";
         }
 
         if (!Number.isFinite(entry.unit_price) || entry.unit_price < 0) {
-          return 'Each invoice entry must have a valid unit price.';
+          return "Each invoice entry must have a valid unit price.";
         }
       }
 
-      return '';
+      return "";
     }
 
-    invoiceForm.addEventListener('submit', function (event) {
+    invoiceForm.addEventListener("submit", (event) => {
       event.preventDefault();
 
-      const customers = getStoredCustomers();
-      const invoices = getStoredInvoices();
+      const customers = getCustomers(currentUserKey);
 
       if (!customers.length) {
-        notice.textContent = 'No customers found. Register a customer first.';
-        notice.className = 'notice';
+        notice.textContent = "No customers found. Register a customer first.";
+        notice.className = "notice";
         return;
       }
 
+      const customer = findCustomerById(customers, customerSelect.value);
+
+      if (!customer) {
+        notice.textContent = "Please select a valid customer.";
+        notice.className = "notice";
+        return;
+      }
+
+      const invoices = getInvoices(currentUserKey);
       const existingIds = new Set(
         invoices
-          .map(function (invoice) { return String(invoice.invoice_id); })
+          .map((invoice) => String(invoice.invoice_id))
           .filter(Boolean)
       );
 
       let invoiceId;
 
       try {
-        invoiceId = generateUniqueInvoiceId(existingIds);
+        invoiceId = generateUniqueDigits(existingIds, 12);
       } catch (error) {
         notice.textContent = error.message;
-        notice.className = 'notice';
+        notice.className = "notice";
         return;
       }
 
       const invoice = {
         invoice_id: invoiceId,
-        customer_id: customerSelect.value,
+        customer_id: customer.customer_id,
         issue_date: issueDateInput.value,
         due_date: dueDateInput.value,
         entries: collectEntries()
       };
 
       const validationMessage = validateInvoice(invoice);
+
       if (validationMessage) {
         notice.textContent = validationMessage;
-        notice.className = 'notice';
+        notice.className = "notice";
         return;
       }
 
       invoices.push(invoice);
-      saveStoredInvoices(invoices);
+      saveInvoices(currentUserKey, invoices);
 
-      notice.textContent = 'Invoice registered successfully with ID ' + invoice.invoice_id + '.';
-      notice.className = 'notice success';
+      notice.textContent = "Invoice registered successfully with ID " + invoice.invoice_id + ".";
+      notice.className = "notice success";
 
       invoiceForm.reset();
       setDefaultDates();
+      populateCustomers();
       resetEntries();
     });
 
-    addEntryBtn.addEventListener('click', function () {
+    addEntryBtn.addEventListener("click", () => {
       createEntryRow();
-      notice.textContent = '';
-      notice.className = 'notice';
+      notice.textContent = "";
+      notice.className = "notice";
     });
 
-    clearFormBtn.addEventListener('click', function () {
+    clearFormBtn.addEventListener("click", () => {
       invoiceForm.reset();
       setDefaultDates();
+      populateCustomers();
       resetEntries();
-      notice.textContent = '';
-      notice.className = 'notice';
+      notice.textContent = "";
+      notice.className = "notice";
     });
 
-    populateCustomers();
-    setDefaultDates();
-    resetEntries();
+    (async function initPage() {
+      try {
+        const session = await requireAuth({ requestedPath: window.location.pathname });
+        currentUserKey = getUserKey(session);
+        sessionLabel.textContent = "Signed in as " + getUserDisplayName(session);
+        populateCustomers();
+        setDefaultDates();
+        resetEntries();
+        releasePage();
+      } catch (error) {
+        showAuthError(error?.message || "Authentication could not be completed.");
+      }
+    })();
   </script>
 </body>
 </html>
