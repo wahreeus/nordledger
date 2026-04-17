@@ -46,3 +46,12 @@ output "cognito_domain" {
 output "cognito_login_url" {
   value = "https://${aws_cognito_user_pool_domain.frontend_auth.domain}.auth.${data.aws_region.current.name}.amazoncognito.com/oauth2/authorize?response_type=code&client_id=${aws_cognito_user_pool_client.frontend_auth.id}&redirect_uri=https://${aws_cloudfront_distribution.frontend_distribution.domain_name}/callback.html&scope=openid+email+profile"
 }
+
+############################
+# API Outputs
+############################
+
+output "nordledger_api_base_url" {
+  description = "Base URL for the NordLedger API Gateway"
+  value       = aws_api_gateway_stage.prod.invoke_url
+}

@@ -9,3 +9,4 @@ build/
 design-docs/
 terraform-templates/
 app/
+terraform/client-mvp/build/

@@ -45,3 +45,9 @@ variable "frontend_bucket_name" {
   type        = string
   default     = "nordledger-frontend"
 }
+
+variable "invoice_bucket_name" {
+  description = "Name of the S3 bucket that stores the invoice PDFs."
+  type        = string
+  default     = "nordledger-invoice-pdfs"
+}
